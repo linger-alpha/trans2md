@@ -308,6 +308,30 @@ def _candidate_skill_dirs_from_probe() -> list[Path]:
     return candidates
 
 
+def _is_trans2md_skill_dir(path: Path) -> bool:
+    """
+    Safety check: only delete a directory if it looks like a trans2md skill folder.
+    This avoids accidental deletion if a user happens to have a folder named "trans2md".
+    """
+    if not path.exists() or not path.is_dir():
+        return False
+    skill_file = path / "SKILL.md"
+    if not skill_file.exists() or not skill_file.is_file():
+        return False
+    try:
+        head = skill_file.read_text(encoding="utf-8").splitlines()[:60]
+    except OSError:
+        return False
+    if not head or head[0].strip() != "---":
+        return False
+    try:
+        end_idx = head[1:].index("---") + 1
+    except ValueError:
+        return False
+    frontmatter = "\n".join(head[1:end_idx])
+    return "name: trans2md" in frontmatter
+
+
 @app.command("uninstall")
 def uninstall(
     yes: bool = typer.Option(
@@ -351,7 +375,7 @@ def uninstall(
         seen.add(key)
         unique.append(p)
 
-    existing = [p for p in unique if p.exists()]
+    existing = [p for p in unique if _is_trans2md_skill_dir(p)]
     if not yes:
         typer.echo("将执行以下卸载步骤：")
         typer.echo(f"- 删除 skills 目录（如果存在）：{len(existing)} 个")

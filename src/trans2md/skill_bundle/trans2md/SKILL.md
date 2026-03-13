@@ -7,7 +7,7 @@ description: 把本地 PDF/Office 文档转换成 Markdown（可选导出 JSON�
 
 ## 快速用法
 
-前置条件：你的系统已安装 `trans2md` 命令（例如通过 `uv tool install trans2md`）。
+前置条件：你的系统已安装 `trans2md` 命令（例如通过 uv 从 GitHub 安装：`uv tool install "trans2md @ git+https://github.com/linger-alpha/trans2md.git"`）。
 
 最常用：
 
@@ -37,6 +37,12 @@ trans2md auth set-token "你的token"
 ```
 
 也支持环境变量：`MINERU_API_TOKEN`，以及命令参数 `--token`（优先级最高）。
+
+## 自然语言示例
+
+当你在对话框里上传了文件后，可以直接说：
+
+> 将这个文件转化为 markdown
 
 ## 输出说明
 

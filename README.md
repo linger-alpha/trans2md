@@ -83,6 +83,8 @@ Skills 用法（自然语言入口，适合 Codex / Claude Code / OpenClaw）：
 - `--keep-zip`：保留 MinerU 返回的原始 ZIP
 - `--layout bundle`：强制每次都创建 `<stem>_trans2md/` 输出（即使没有图片）
 - `uninstall`：一键卸载（删除已安装 skills + 清理本地配置 + 可选自卸载）
+  - 全卸载：`trans2md uninstall -y`（会尝试执行 `uv tool uninstall trans2md`）
+  - 只删 skills 和配置、保留命令：`trans2md uninstall -y --no-self`
 
 - 面向开发者：
 
