@@ -36,31 +36,31 @@ $env:MINERU_API_TOKEN="你的 token"
 默认输出 Markdown：
 
 ```bash
-uv run trans2md "/path/to/demo.pdf"
+trans2md "/path/to/demo.pdf"
 ```
 
 一次处理多个文件：
 
 ```bash
-uv run trans2md "/path/to/a.pdf" "/path/to/b.docx"
+trans2md "/path/to/a.pdf" "/path/to/b.docx"
 ```
 
 显式调用子命令也可以：
 
 ```bash
-uv run trans2md convert "/path/to/demo.pdf"
+trans2md convert "/path/to/demo.pdf"
 ```
 
 需要 JSON 时显式打开。默认导出 `content_list.json`，这是最接近阅读顺序的结构化结果：
 
 ```bash
-uv run trans2md "/path/to/demo.pdf" --json
+trans2md "/path/to/demo.pdf" --json
 ```
 
 如果你还想保留 MinerU 返回的原始 ZIP：
 
 ```bash
-uv run trans2md "/path/to/demo.pdf" --keep-zip
+trans2md "/path/to/demo.pdf" --keep-zip
 ```
 
 ## Token 管理
@@ -68,8 +68,8 @@ uv run trans2md "/path/to/demo.pdf" --keep-zip
 推荐写入本地配置文件（跨平台）：
 
 ```bash
-uv run trans2md auth set-token "你的 token"
-uv run trans2md auth show
+trans2md auth set-token "你的 token"
+trans2md auth show
 ```
 
 也支持环境变量：`MINERU_API_TOKEN`，以及 `--token`（优先级最高）。
@@ -79,9 +79,9 @@ uv run trans2md auth show
 仿照 helloagents 的方式，使用 CLI 显式安装 skill 到对应产品的目录：
 
 ```bash
-uv run trans2md install codex
-uv run trans2md install claude
-uv run trans2md install openclaw
+trans2md install codex
+trans2md install claude
+trans2md install openclaw
 ```
 
 其中 `install codex/openclaw` 会探测常见 skills 目录（存在则优先使用），找不到则创建默认目录：
@@ -91,7 +91,7 @@ uv run trans2md install openclaw
 OpenClaw 若要安装到某个 workspace 下：
 
 ```bash
-uv run trans2md install openclaw --workspace "/path/to/workspace"
+trans2md install openclaw --workspace "/path/to/workspace"
 ```
 
 ## 默认产物
@@ -119,4 +119,10 @@ uv run trans2md --help
 uv run trans2md --version
 uv run pytest
 uv run ruff check .
+```
+
+如果你在本仓库内开发时遇到 `uv run trans2md` 不可用，可以直接用源码运行：
+
+```bash
+PYTHONPATH="src" python -m trans2md --help
 ```
