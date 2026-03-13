@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -15,6 +16,7 @@ from trans2md.artifacts import ArtifactError, ArtifactWriter
 from trans2md.config import (
     clear_all_config,
     clear_token,
+    get_config_file,
     load_config,
     record_skill_install,
     save_token,
@@ -238,10 +240,15 @@ def auth_unset_token() -> None:
 @auth_app.command("show")
 def auth_show() -> None:
     config = load_config()
-    if config.mineru_api_token:
-        typer.echo("已配置 MinerU token（存储在本地配置文件中）")
-    else:
-        typer.echo("未配置 MinerU token")
+    env_token = os.getenv("MINERU_API_TOKEN")
+    env_ok = bool(env_token and env_token.strip())
+    file_path = get_config_file()
+
+    typer.echo("MinerU token 状态：")
+    typer.echo(f"- 环境变量 MINERU_API_TOKEN：{'已设置' if env_ok else '未设置'}")
+    typer.echo(f"- 本地配置文件：{file_path}")
+    typer.echo(f"  - 配置文件 token：{'已设置' if config.mineru_api_token else '未设置'}")
+    typer.echo("优先级：--token > MINERU_API_TOKEN > 本地配置文件")
 
 
 @install_app.command("codex")
