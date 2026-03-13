@@ -297,6 +297,22 @@ def install_all(
     install_openclaw(overwrite=overwrite, workspace=None)
 
 
+@install_app.command("list")
+def install_list() -> None:
+    """列出 trans2md 记录的 skills 安装位置（不会读取/输出 token）。"""
+    config = load_config()
+    if not config.installed_skills:
+        typer.echo("未记录已安装的 skills（你可以先运行 trans2md install codex|claude|openclaw）")
+        raise typer.Exit(code=0)
+
+    for target in sorted(config.installed_skills.keys()):
+        typer.echo(f"[{target}]")
+        for raw_path in config.installed_skills.get(target, []):
+            path = Path(raw_path).expanduser()
+            suffix = " (missing)" if not path.exists() else ""
+            typer.echo(f"- {path}{suffix}")
+
+
 def _candidate_skill_dirs_from_probe() -> list[Path]:
     home = Path.home()
     candidates: list[Path] = []
