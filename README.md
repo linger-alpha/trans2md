@@ -7,13 +7,21 @@
 面向普通用户（安装为系统命令）：
 
 ```bash
-uv tool install trans2md
+# 方式 A（推荐，未来发布到 PyPI 后适用）
+# uv tool install trans2md
+
+# 方式 B（现在就能用：直接从 GitHub 安装）
+uv tool install "trans2md @ git+https://github.com/linger-alpha/trans2md"
+
+# 确保 uv 的 tools 目录已加入 PATH（通常只需要执行一次）
+uv tool update-shell
 ```
 
 面向开发者（本仓库内开发）：
 
 ```bash
-cd /Users/linger/Documents/Python/codex_workplace/trans2md
+git clone https://github.com/linger-alpha/trans2md
+cd trans2md
 uv sync --group dev
 ```
 
@@ -115,8 +123,6 @@ trans2md install openclaw --workspace "/path/to/workspace"
 ## 开发命令
 
 ```bash
-uv run trans2md --help
-uv run trans2md --version
 uv run pytest
 uv run ruff check .
 ```
