@@ -1,19 +1,33 @@
 ---
 name: trans2md
-description: 把本地 PDF/Office 文档转换成 Markdown（可选导出 JSON）。默认布局为 auto：有图片则输出 <stem>_trans2md/<stem>.md + images/，无图片则直接在源文件同目录输出 <stem>.md。
+description: 把本地文件转换成 Markdown（可选导出 JSON）
 ---
 
 # trans2md
 
 ## 快速用法
 
-前置条件：你的系统已安装 `trans2md` 命令（例如通过 uv 从 GitHub 安装：`uv tool install "trans2md @ git+https://github.com/linger-alpha/trans2md.git"`）。
+核心原则：对源文件运行 `trans2md`，不要把文件复制到工作区再转换。
 
 最常用：
 
 ```bash
 trans2md "/path/to/file.pdf"
 ```
+
+支持的文件类型（常用）：
+
+- `.pdf`
+- `.doc` / `.docx`
+- `.ppt` / `.pptx`
+- `.png`
+- `.jpg` / `.jpeg`
+- `.html`
+
+说明：
+
+- 对图片类文件（`.png/.jpg/.jpeg`）如果你希望识别文字，通常需要加 `--ocr`。
+- 路径里有空格/中文时，请务必用引号把路径包起来。
 
 可选导出：
 
@@ -28,22 +42,6 @@ trans2md "/path/to/file.pdf" --keep-zip
 trans2md "/path/to/file.pdf" --overwrite
 ```
 
-## Token 管理
-
-推荐把 MinerU token 写入 trans2md 的本地配置（跨平台）：
-
-```bash
-trans2md auth set-token "你的token"
-```
-
-也支持环境变量：`MINERU_API_TOKEN`，以及命令参数 `--token`（优先级最高）。
-
-## 自然语言示例
-
-当你在对话框里上传了文件后，可以直接说：
-
-> 将这个文件转化为 markdown
-
 ## 输出说明
 
 默认输出布局为 `auto`（与源文件同目录）：
@@ -56,5 +54,3 @@ trans2md auth set-token "你的token"
 ```bash
 trans2md "/path/to/file.pdf" --layout bundle
 ```
-
-注：目前不提供 “inplace” 输出（不在源文件夹原地创建图片目录），避免污染原目录；有图片时统一输出到 `<stem>_trans2md/`。
