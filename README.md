@@ -67,10 +67,11 @@ $env:MINERU_API_TOKEN="你的 token"
 trans2md "/path/to/file.pdf"
 ```
 
-Skills 用法（自然语言入口）：
+Skills 用法（自然语言入口，适合 Codex / Claude Code / OpenClaw）：
 - 先按上面的命令 `trans2md install codex|claude|openclaw` 安装对应 skill
 - 在对应的产品里，把源文件拖入对话框
 - 用自然语言让 Agent 转换为 Markdown（Agent 会调用 `trans2md`，并按本项目默认规则落盘）
+  例如：将这个文件转化为 markdown
 
 ## 说明
 
