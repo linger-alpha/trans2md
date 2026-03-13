@@ -8,3 +8,4 @@ dist/
 *_trans2md/
 *_mineru.zip
 /*.pdf
+.DS_Store
