@@ -85,10 +85,45 @@ class MineruClient:
                 try:
                     response = self.session.put(upload_url, data=file_handle, timeout=self.timeout)
                 except requests.RequestException as exc:
-                    raise MineruApiError(f"上传文件失败：{job.source_path.name} -> {exc}") from exc
+                    # Some environments (notably LibreSSL builds) can hit TLS EOF issues with OSS.
+                    # Fall back to system curl for robustness.
+                    self._upload_with_curl(upload_url, job.source_path, exc=exc)
+                    continue
+
             if response.status_code != requests.codes.ok:
-                message = f"上传失败：{job.source_path} -> HTTP {response.status_code}"
-                raise MineruApiError(message)
+                # Retry with curl on non-200 as well (OSS presigned URLs can be picky).
+                self._upload_with_curl(upload_url, job.source_path)
+
+    def _upload_with_curl(self, url: str, source: Path, *, exc: Exception | None = None) -> None:
+        curl_path = shutil.which("curl")
+        if not curl_path:
+            prefix = f"上传文件失败：{source.name}"
+            if exc:
+                raise MineruApiError(f"{prefix} -> {exc}") from exc
+            raise MineruApiError(f"{prefix}（HTTP 非 200，且当前环境不可用 curl 作为降级方案）")
+        try:
+            # -T uses PUT by default.
+            subprocess.run(
+                [
+                    curl_path,
+                    "-L",
+                    "--fail",
+                    "--silent",
+                    "--show-error",
+                    "--retry",
+                    "3",
+                    "--retry-all-errors",
+                    "-T",
+                    str(source),
+                    url,
+                ],
+                check=True,
+            )
+        except subprocess.CalledProcessError as curl_exc:
+            prefix = f"上传文件失败：{source.name}"
+            if exc:
+                raise MineruApiError(f"{prefix} -> {exc}（curl 降级也失败：{curl_exc}）") from exc
+            raise MineruApiError(f"{prefix}（curl 降级失败：{curl_exc}）") from curl_exc
 
     def wait_batch_results(
         self,
