@@ -14,6 +14,7 @@ description: 把本地文件转换成 Markdown（可选导出 JSON）
 ```bash
 trans2md "/path/to/file.pdf"
 ```
+当命令较为简单时（比如将文件转换为 md ）且只有一个文件时，直接运行上述命令，无需了解命令行参数与审查输出结果
 
 支持的文件类型（常用）：
 
