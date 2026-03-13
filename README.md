@@ -1,33 +1,53 @@
 # trans2md
 
-基于 MinerU 通用解析 API 的 Python CLI。当前 MVP 只做一件事：把本地文件转换成 Markdown，并在有图片时把图片整理到与 Markdown 同级的 `images/` 目录，确保 `md + images/` 足够直接渲染出文档。
+让 MinerU 更易用的跨平台命令行工具（macOS/Windows/Linux）。
+
+它做两件事：
+- 把本地文件转换成 Markdown
+- 自动把产物落在“源文件同目录”，并且 Markdown 文件名与源文件一致（仅后缀变为 `.md`）
+
+输出规则（默认 `--layout auto`）：
+- 无图片引用：直接在源文件同目录生成 `<stem>.md`
+- 有图片引用：创建 `<stem>_trans2md/`，输出 `<stem>_trans2md/<stem>.md` + `<stem>_trans2md/images/`（`md + images/` 可直接渲染）
 
 ## 安装
 
-面向普通用户（安装为系统命令）：
+安装为系统命令（`trans2md`）：
 
 ```bash
-# 方式 A（推荐，未来发布到 PyPI 后适用）
-# uv tool install trans2md
-
-# 方式 B（现在就能用：直接从 GitHub 安装）
-uv tool install "trans2md @ git+https://github.com/linger-alpha/trans2md"
+# 直接从 GitHub 安装
+uv tool install "trans2md @ git+https://github.com/linger-alpha/trans2md.git"
 
 # 确保 uv 的 tools 目录已加入 PATH（通常只需要执行一次）
 uv tool update-shell
 ```
 
-面向开发者（本仓库内开发）：
+安装 skills（用于 Codex / Claude Code / OpenClaw 的自然语言入口）：
 
 ```bash
-git clone https://github.com/linger-alpha/trans2md
-cd trans2md
-uv sync --group dev
+trans2md install codex
+trans2md install claude
+trans2md install openclaw
+```
+
+其中 `install codex/openclaw` 会探测常见 skills 目录（存在则优先使用），找不到则创建默认目录。
+
+OpenClaw 若要安装到某个 workspace 下：
+
+```bash
+trans2md install openclaw --workspace "/path/to/workspace"
 ```
 
 ## 准备
 
-设置 MinerU Token：
+优先推荐使用项目自带的 token 管理（跨平台）：
+
+```bash
+trans2md auth set-token "你的 token"
+trans2md auth show
+```
+
+也可以使用环境变量 `MINERU_API_TOKEN`：
 
 ```bash
 export MINERU_API_TOKEN="你的 token"
@@ -39,96 +59,33 @@ Windows PowerShell：
 $env:MINERU_API_TOKEN="你的 token"
 ```
 
-## 用法
+## 使用
 
-默认输出 Markdown：
-
-```bash
-trans2md "/path/to/demo.pdf"
-```
-
-一次处理多个文件：
+基础命令行用法（把文件转成 Markdown，产物自动落在源文件同目录）：
 
 ```bash
-trans2md "/path/to/a.pdf" "/path/to/b.docx"
+trans2md "/path/to/file.pdf"
 ```
 
-显式调用子命令也可以：
-
-```bash
-trans2md convert "/path/to/demo.pdf"
-```
-
-需要 JSON 时显式打开。默认导出 `content_list.json`，这是最接近阅读顺序的结构化结果：
-
-```bash
-trans2md "/path/to/demo.pdf" --json
-```
-
-如果你还想保留 MinerU 返回的原始 ZIP：
-
-```bash
-trans2md "/path/to/demo.pdf" --keep-zip
-```
-
-## Token 管理
-
-推荐写入本地配置文件（跨平台）：
-
-```bash
-trans2md auth set-token "你的 token"
-trans2md auth show
-```
-
-也支持环境变量：`MINERU_API_TOKEN`，以及 `--token`（优先级最高）。
-
-## 安装 Skills
-
-仿照 helloagents 的方式，使用 CLI 显式安装 skill 到对应产品的目录：
-
-```bash
-trans2md install codex
-trans2md install claude
-trans2md install openclaw
-```
-
-其中 `install codex/openclaw` 会探测常见 skills 目录（存在则优先使用），找不到则创建默认目录：
-- Codex：优先 `~/.codex/skills/`，若已存在旧目录则用 `~/.agents/skills/`
-- OpenClaw：优先 `~/.openclaw/workspace/skills/`（若存在），否则 `~/.openclaw/skills/`
-
-OpenClaw 若要安装到某个 workspace 下：
-
-```bash
-trans2md install openclaw --workspace "/path/to/workspace"
-```
-
-## 默认产物
-
-默认输出布局为 `auto`（与源文件同目录）：
-- 有图片引用时：创建 `demo_trans2md/`，输出 `demo_trans2md/demo.md` + `demo_trans2md/images/`
-- 无图片引用时：直接输出 `demo.md`（不额外创建 `demo_trans2md/`）
-
-## 可选产物
-
-- `--json`：额外导出 JSON（有图片时放在 `demo_trans2md/`，无图片时与 `demo.md` 同目录）
-- `--keep-zip`：保留 MinerU 返回的原始 ZIP（同上）
+Skills 用法（自然语言入口）：
+- 先按上面的命令 `trans2md install codex|claude|openclaw` 安装对应 skill
+- 在对应的产品里，把源文件拖入对话框
+- 用自然语言让 Agent 转换为 Markdown（Agent 会调用 `trans2md`，并按本项目默认规则落盘）
 
 ## 说明
 
-- `bundle/auto(有图)`：保留 MinerU 的默认相对路径（通常是 `images/...`，与 md 平级）
-- 默认不保留调试类 PDF、结构化 JSON、原始 ZIP，避免污染目录
-- 如果输出文件已存在，需要显式传 `--overwrite`
-- 输出布局默认 `auto`。如需强制打包文件夹输出，用：`--layout bundle`
+- 可选项（进阶用法）：
+- `--overwrite`：允许覆盖已有输出
+- `--json`：额外导出 JSON（默认选择 `content_list.json`）
+- `--keep-zip`：保留 MinerU 返回的原始 ZIP
+- `--layout bundle`：强制每次都创建 `<stem>_trans2md/` 输出（即使没有图片）
 
-## 开发命令
+- 面向开发者：
 
 ```bash
+git clone https://github.com/linger-alpha/trans2md.git
+cd trans2md
+uv sync --group dev
 uv run pytest
 uv run ruff check .
-```
-
-如果你在本仓库内开发时遇到 `uv run trans2md` 不可用，可以直接用源码运行：
-
-```bash
-PYTHONPATH="src" python -m trans2md --help
 ```
