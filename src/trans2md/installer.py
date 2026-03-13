@@ -31,6 +31,10 @@ def detect_codex_user_skills_dir(home: Path) -> Path:
     return existing or preferred
 
 
+def codex_skill_root_candidates(home: Path) -> list[Path]:
+    return [home / ".codex" / "skills", home / ".agents" / "skills"]
+
+
 def detect_openclaw_user_skills_dir(home: Path) -> Path:
     """
     Prefer OpenClaw workspace skills if present, otherwise use managed skills.
@@ -40,6 +44,10 @@ def detect_openclaw_user_skills_dir(home: Path) -> Path:
     managed = home / ".openclaw" / "skills"
     existing = _first_existing([workspace, managed])
     return existing or managed
+
+
+def openclaw_skill_root_candidates(home: Path) -> list[Path]:
+    return [home / ".openclaw" / "workspace" / "skills", home / ".openclaw" / "skills"]
 
 
 def default_targets(home: Path) -> InstallTargetPaths:

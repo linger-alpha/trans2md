@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import shutil
+import subprocess
 import sys
 import uuid
 from pathlib import Path
@@ -10,8 +12,19 @@ import typer
 
 from trans2md import __version__
 from trans2md.artifacts import ArtifactError, ArtifactWriter
-from trans2md.config import clear_token, load_config, save_token
-from trans2md.installer import copy_skill_bundle, default_targets
+from trans2md.config import (
+    clear_all_config,
+    clear_token,
+    load_config,
+    record_skill_install,
+    save_token,
+)
+from trans2md.installer import (
+    codex_skill_root_candidates,
+    copy_skill_bundle,
+    default_targets,
+    openclaw_skill_root_candidates,
+)
 from trans2md.mineru_api import MineruApiError, MineruClient
 from trans2md.models import BatchFileResult, LocalFileJob
 
@@ -238,6 +251,7 @@ def install_codex(
     home = Path.home()
     targets = default_targets(home)
     dest = copy_skill_bundle("trans2md", targets.codex_user_skills, overwrite=overwrite)
+    record_skill_install("codex", dest)
     typer.echo(f"已安装到 Codex skills：{dest}")
 
 
@@ -248,6 +262,7 @@ def install_claude(
     home = Path.home()
     targets = default_targets(home)
     dest = copy_skill_bundle("trans2md", targets.claude_user_skills, overwrite=overwrite)
+    record_skill_install("claude", dest)
     typer.echo(f"已安装到 Claude Code skills：{dest}")
 
 
@@ -262,12 +277,14 @@ def install_openclaw(
     if workspace:
         dest_root = workspace.expanduser().resolve() / "skills"
         dest = copy_skill_bundle("trans2md", dest_root, overwrite=overwrite)
+        record_skill_install("openclaw", dest)
         typer.echo(f"已安装到 OpenClaw workspace skills：{dest}")
         return
 
     home = Path.home()
     targets = default_targets(home)
     dest = copy_skill_bundle("trans2md", targets.openclaw_user_skills, overwrite=overwrite)
+    record_skill_install("openclaw", dest)
     typer.echo(f"已安装到 OpenClaw skills：{dest}")
 
 
@@ -280,9 +297,118 @@ def install_all(
     install_openclaw(overwrite=overwrite, workspace=None)
 
 
+def _candidate_skill_dirs_from_probe() -> list[Path]:
+    home = Path.home()
+    candidates: list[Path] = []
+    for root in codex_skill_root_candidates(home):
+        candidates.append(root / "trans2md")
+    candidates.append(home / ".claude" / "skills" / "trans2md")
+    for root in openclaw_skill_root_candidates(home):
+        candidates.append(root / "trans2md")
+    return candidates
+
+
+@app.command("uninstall")
+def uninstall(
+    yes: bool = typer.Option(
+        False,
+        "--yes",
+        "-y",
+        help="不询问确认，直接执行卸载。",
+    ),
+    self_uninstall: bool = typer.Option(
+        True,
+        "--self/--no-self",
+        help="最后尝试执行 `uv tool uninstall trans2md` 自卸载（默认开启）。",
+    ),
+) -> None:
+    """
+    卸载 trans2md：
+    1) 删除已安装的 skills（优先按本地配置记录，其次自动探测常见目录）
+    2) 清理本地配置（token + 安装记录）
+    3) 可选：尝试 `uv tool uninstall trans2md` 自卸载
+    """
+    config = load_config()
+
+    # 1) skills
+    to_remove: list[Path] = []
+    if config.installed_skills:
+        for paths in config.installed_skills.values():
+            for p in paths:
+                try:
+                    to_remove.append(Path(p).expanduser())
+                except (OSError, ValueError):
+                    continue
+    to_remove.extend(_candidate_skill_dirs_from_probe())
+
+    # de-dup while preserving order
+    seen: set[str] = set()
+    unique: list[Path] = []
+    for p in to_remove:
+        key = str(p)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(p)
+
+    existing = [p for p in unique if p.exists()]
+    if not yes:
+        typer.echo("将执行以下卸载步骤：")
+        typer.echo(f"- 删除 skills 目录（如果存在）：{len(existing)} 个")
+        typer.echo("- 清理本地配置（token + 安装记录）")
+        if self_uninstall:
+            typer.echo("- 尝试执行：uv tool uninstall trans2md")
+        if not typer.confirm("确认继续？", default=False):
+            raise typer.Exit(code=0)
+
+    removed_any = False
+    for p in existing:
+        try:
+            if p.is_dir():
+                shutil.rmtree(p)
+                removed_any = True
+            else:
+                p.unlink()
+                removed_any = True
+        except OSError as exc:
+            typer.secho(f"删除失败：{p}（{exc}）", err=True, fg=typer.colors.RED)
+
+    if removed_any:
+        typer.echo("已删除已检测到的 skills。")
+    else:
+        typer.echo("未检测到已安装的 skills（或已被手动删除）。")
+
+    # 2) local config
+    clear_all_config()
+    typer.echo("已清理本地配置。")
+
+    # 3) uv tool uninstall
+    if self_uninstall:
+        try:
+            proc = subprocess.run(
+                ["uv", "tool", "uninstall", "trans2md"],
+                check=False,
+                text=True,
+                capture_output=True,
+            )
+            if proc.returncode == 0:
+                typer.echo("已执行：uv tool uninstall trans2md")
+            else:
+                message = (proc.stderr or proc.stdout or "").strip()
+                if message:
+                    typer.secho(message, err=True, fg=typer.colors.RED)
+                typer.secho(
+                    "执行 `uv tool uninstall trans2md` 失败（可能当前并非通过 uv tool 安装）。",
+                    err=True,
+                    fg=typer.colors.RED,
+                )
+        except FileNotFoundError:
+            typer.secho("未找到 uv 命令，跳过自卸载。", err=True, fg=typer.colors.RED)
+
+
 def main() -> None:
     # 兼容 `trans2md /path/to/file.pdf`：自动注入 `convert`
-    known = {"convert", "auth", "install"}
+    known = {"convert", "auth", "install", "uninstall"}
     argv = sys.argv
     if len(argv) >= 2 and not argv[1].startswith("-") and argv[1] not in known:
         argv.insert(1, "convert")
